@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+    <script src="https://cdn.staticfile.org/vue/2.4.2/vue.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">  
+  </head>
+  <body>
+    <div id="app">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">demo</h3>
+        </div>
+        <div class="panel-body form-inline">
+          <label>
+            Name:
+            <input
+              type="text"
+              class="form-control"
+              v-model="name"
+              @keyup.enter="add"
+            />
+          </label>
+          <input
+            type="button"
+            value="添加"
+            class="btn btn-primary"
+            @click="add"
+          />
+          <label>
+            输入关键词:
+            <input
+              type="text"
+              class="form-control"
+              v-model="keywords"
+              id="search"
+              v-focus="'red'"
+            />
+          </label>
+        </div>
+      </div>
+
+      <table class="table table-hover table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Ctime</th>
+            <th>Operation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in search(keywords)" :key="item.id">
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.ctime | dateformat('')}}</td>
+            <td><a href="" @click.prevent="del(item.id)">删除</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <script>
+        Vue.http.options.root = 'http://www.liulongbin.top:3005/';
+        Vue.http.options.emulateJSON = true;
+        Vue.filter("dateformat", function(datestr, pattern) {
+          var dt = new Date(datestr);
+          var y = dt.getFullYear();
+          var m = (dt.getMonth() + 1).toString().padStart(2, "0");
+          var d = dt
+            .getDate()
+            .toString()
+            .padStart(2, "0");
+          if (pattern && pattern.toLowerCase() === "yyyy-mm-dd") {
+            return `${y}-${m}-${d}`;
+          } else {
+            var h = dt
+              .getHours()
+              .toString()
+              .padStart(2, "0");
+            var mm = dt
+              .getMinutes()
+              .toString()
+              .padStart(2, "0");
+            var s = dt
+              .getSeconds()
+              .toString()
+              .padStart(2, "0");
+            return `${y}-${m}-${d} ${h}:${mm}:${s}`;
+          }
+        });
+        Vue.directive("focus", {
+          bind: function(el,binding) {
+            el.style.color = binding.value
+            // 样式只要通过指令绑定给元素，不管这个元素有没有被插入到页面中去，这个元素肯定已经有了内联样式
+            // 和样式有关的操作可以直接放在bind
+          },
+          inserted: function(el) {
+            el.focus();
+            // 元素插入到dom中的时候会执行inserted中的函数，和js有关的操作一般放在inserted
+          },
+          updated: function(el) {}
+        });
+        var vm = new Vue({
+          el: "#app",
+          data: {
+            id: null,
+            name: null,
+            keywords: "",
+            list: [
+              { id: 1, name: "奔驰", ctime: new Date() },
+              { id: 2, name: "宝马", ctime: new Date() }
+            ]
+          },
+          created() {
+            this.getAllList()
+          },
+          methods: {
+            add() {
+              this.$http.post('api/addproduct',{name:this.name})
+              .then(result=>{
+                  var result = result.body
+                  if(result.status === 0 ){
+                      this.getAllList()
+                  }
+              })
+            },
+            del(id) {
+              this.$http.get('api/delproduct/' + id)
+                .then(result=>{
+                    var result = result.body
+                  if(result.status === 0 ){
+                      this.getAllList()
+                  }else{
+                      alert("请求失败")
+                  }
+                })
+            },
+            search(keywords) {
+              var newList = [];
+              this.list.forEach(item => {
+                if (item.name.indexOf(keywords) != -1) {
+                  newList.push(item);
+                }
+              });
+              return newList;
+            },
+            getAllList(){
+                this.$http.get('api/getprodlist').then(result =>{
+                    var result = result.body
+                    if(result.status === 0){
+                        this.list = result.message
+                    }else{
+                        alert('获取数据失败')
+                    }
+                })
+            }
+          }
+        });
+      </script>
+    </div>
+  </body>
+</html>
